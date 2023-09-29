@@ -88,7 +88,7 @@ $clientID = (isset($_SESSION['id']))?$_SESSION['id']:'';
                     <input type="submit" id="updateButton" value="      UPDATE      "><br>
                 </form>
 
-					<input type="button" id="deleteButton" value="      DELETE      "><br>
+					<input type="button" id="deleteButton" value="      DELETE      " onclick="deleteContact()"><br>
 					<input type="button" id="cancelButton" value="      CANCEL      ">
 				
 			</div>

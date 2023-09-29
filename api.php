@@ -29,6 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'REGIS') {
     loadContacts($con);
 } else if ($_SERVER['REQUEST_METHOD'] === 'UPDT') {
     updateContact($con);
+} else if ($_SERVER['REQUEST_METHOD'] === 'DELET') {
+    deleteContact($con);
 }
 
 
@@ -224,6 +226,46 @@ function updateContact($con) {
         $stmt = $con->prepare("UPDATE smlcon SET firstName=?, lastName=?, email=?, phone=? WHERE (ownerID=? AND firstName=? AND lastName=? AND email=? AND phone=?)");
         //Bind the anonymous parameters
         $stmt->bind_param("sssiisssi", $newFirst, $newLast, $newEmail, $newPhone, $ownerID, $oldFirst, $oldLast, $oldEmail, $oldPhone);
+
+        //Attempt to execute our query
+        try {
+            $stmt->execute();
+            $response = ['success' => true];
+
+        //Either the user entered a duplicate username, or there was an issue contacting the database
+        } catch(mysqli_sql_exception) {$response = ['success' => false];}
+
+        
+        //Terminating query
+        $stmt->close();
+
+        // Return JSON response
+        header("Content-Type: application/json");
+        echo json_encode($response);
+    }
+}
+
+
+//User would like to delete a member from their contacts list
+function deleteContact($con) {
+    //Double checking request method
+    if ($_SERVER['REQUEST_METHOD'] === 'DELET') {
+        // Decode the incoming request (php://input is an input stream with raw JSON from the HTTP request body)
+        $requestData = json_decode(file_get_contents("php://input"), true);
+
+        //Pulling data from the json
+        $ownerID = $requestData['id'];
+        $firstName = $requestData['firstName'];
+        $lastName = $requestData['lastName'];
+        $email = $requestData['email'];
+        $phone = $requestData['phone']; 
+    
+        /*If the stmts aren't in the format below, we are prone to SQL injections! Please have values '?' in the con->prepare and only specify them in bind_params!*/
+
+        //Safely preform a DELETE query using a prepared statement
+        $stmt = $con->prepare("DELETE FROM smlcon WHERE (ownerID=? AND firstName=? AND lastName=? AND email=? AND phone=?)");
+        //Bind the anonymous parameters
+        $stmt->bind_param("isssi", $ownerID, $firstName, $lastName, $email, $phone);
 
         //Attempt to execute our query
         try {
