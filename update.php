@@ -1,6 +1,5 @@
+<!--PHP code to connect this page to the website session. Feel free to take this out and reformat to HTML if it messes with Bootstrap; I can re-add it any time-->
 <?php
-// contact.php
-
 // Include the API script
 include("api.php");
 
@@ -14,7 +13,7 @@ $clientID = (isset($_SESSION['id']))?$_SESSION['id']:'';
 <!DOCTYPE html>
 <html>
 <head>
-<title>CRUD Login</title>
+<title>CRUD Contact Edit</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
 	
@@ -64,7 +63,7 @@ $clientID = (isset($_SESSION['id']))?$_SESSION['id']:'';
 		</div>
 	</div>
 
-	<!--Login Form-->
+	<!--Update/Delete Form-->
     <div class="container text-center">
 		<div class="row align-items-center">
 			<div class="col p-2" style="border-radius: 32px; border: 3px solid RoyalBlue; background-color: LightCyan;">
@@ -89,7 +88,7 @@ $clientID = (isset($_SESSION['id']))?$_SESSION['id']:'';
                 </form>
 
 					<input type="button" id="deleteButton" value="      DELETE      " onclick="deleteContact()"><br>
-					<input type="button" id="cancelButton" value="      CANCEL      ">
+					<input type="button" id="cancelButton" value="      CANCEL      " onclick="leavePage()">
 				
 			</div>
 		</div>

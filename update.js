@@ -117,3 +117,8 @@ function deleteContact() {
     });
 
 }
+
+//The user cancelled the contact edit
+function leavePage() {
+    window.location.href = "contact.php";
+}

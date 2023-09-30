@@ -31,6 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'REGIS') {
     updateContact($con);
 } else if ($_SERVER['REQUEST_METHOD'] === 'DELET') {
     deleteContact($con);
+} else if ($_SERVER['REQUEST_METHOD'] === 'ADD') {
+    addContact($con);
 }
 
 
@@ -55,7 +57,7 @@ function regisUser($con) {
         /*If the stmts aren't in the format below, we are prone to SQL injections! Please have values '?' in the con->prepare and only specify them in bind_params!*/
 
         //Safely preform an INSERT query using a prepared statement
-        $stmt = $con->prepare("INSERT INTO smlpj (firstName, lastName, email, username, passwordHashed, phone) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt = $con->prepare("INSERT INTO userlogins (FirstName, LastName, Email, Username, PasswordHashed, Phone) VALUES (?, ?, ?, ?, ?, ?)");
         //Bind the anonymous parameters
         $stmt->bind_param("sssssi", $firstname, $lastname, $email, $username, $hash, $phone);
 
@@ -106,7 +108,7 @@ function loginUser($con) {
         /*If the stmts aren't in the format below, we are prone to SQL injections! Please have values '?' in the con->prepare and only specify them in bind_params!*/
 
         //Safely preform a SELECT query using a prepared statement
-        $stmt = $con->prepare("SELECT passwordHashed FROM smlpj WHERE username=?");
+        $stmt = $con->prepare("SELECT PasswordHashed FROM userlogins WHERE Username=?");
         //Bind the anonymous parameters
         $stmt->bind_param("s", $username);
 
@@ -117,7 +119,7 @@ function loginUser($con) {
 
             //Check if anything was actually retrieved from the database
             if($result->num_rows > 0) {
-                $hashedP = $result->fetch_assoc()["passwordHashed"]; //Grab the saved password
+                $hashedP = $result->fetch_assoc()["PasswordHashed"]; //Grab the saved password
 
                 //If the provided password matched the password we had on record, user is who they claim to be. Otherwise do not permit them entry to the specified account
                 if(password_verify($password, $hashedP)) {
@@ -169,7 +171,7 @@ function loadContacts($con) {
         /*If the stmts aren't in the format below, we are prone to SQL injections! Please have values '?' in the con->prepare and only specify them in bind_params!*/
 
         //Safely preform a SELECT query using a prepared statement
-        $stmt = $con->prepare("SELECT * FROM smlcon WHERE (ownerID=?)");
+        $stmt = $con->prepare("SELECT * FROM usercontacts WHERE (ownerID=?)");
         //Bind the anonymous parameters
         $stmt->bind_param("i", $clientID);
 
@@ -178,7 +180,7 @@ function loadContacts($con) {
             $stmt->execute();
 
             //Bind the query results to the specified variables
-            $stmt->bind_result($contactID, $ownerID, $firstName, $lastName, $email, $phone);
+            $stmt->bind_result($contactID, $ownerID, $firstName, $lastName, $phone, $email);
 
             //Populate an array of arrays with contact information
             while($stmt->fetch()) {
@@ -190,7 +192,7 @@ function loadContacts($con) {
                 ];
             }
 
-            $response = ['success' => true, 'contacts' => $contacts];
+            $response = ['success' => true, 'contacts' => $contacts]; //Send the contacts in the JSON file
 
         //Error communicating with the database
         } catch(mysqli_sql_exception) {$response = ['success' => false];}
@@ -223,7 +225,7 @@ function updateContact($con) {
         /*If the stmts aren't in the format below, we are prone to SQL injections! Please have values '?' in the con->prepare and only specify them in bind_params!*/
 
         //Safely preform an UPDATE query using a prepared statement
-        $stmt = $con->prepare("UPDATE smlcon SET firstName=?, lastName=?, email=?, phone=? WHERE (ownerID=? AND firstName=? AND lastName=? AND email=? AND phone=?)");
+        $stmt = $con->prepare("UPDATE usercontacts SET FirstName=?, LastName=?, Email=?, Phone=? WHERE (ownerID=? AND FirstName=? AND LastName=? AND Email=? AND Phone=?)");
         //Bind the anonymous parameters
         $stmt->bind_param("sssiisssi", $newFirst, $newLast, $newEmail, $newPhone, $ownerID, $oldFirst, $oldLast, $oldEmail, $oldPhone);
 
@@ -232,7 +234,7 @@ function updateContact($con) {
             $stmt->execute();
             $response = ['success' => true];
 
-        //Either the user entered a duplicate username, or there was an issue contacting the database
+        //Either the contact to be updated doesnt exist, or there was an issue contacting the database
         } catch(mysqli_sql_exception) {$response = ['success' => false];}
 
         
@@ -263,7 +265,7 @@ function deleteContact($con) {
         /*If the stmts aren't in the format below, we are prone to SQL injections! Please have values '?' in the con->prepare and only specify them in bind_params!*/
 
         //Safely preform a DELETE query using a prepared statement
-        $stmt = $con->prepare("DELETE FROM smlcon WHERE (ownerID=? AND firstName=? AND lastName=? AND email=? AND phone=?)");
+        $stmt = $con->prepare("DELETE FROM usercontacts WHERE (ownerID=? AND FirstName=? AND LastName=? AND Email=? AND Phone=?)");
         //Bind the anonymous parameters
         $stmt->bind_param("isssi", $ownerID, $firstName, $lastName, $email, $phone);
 
@@ -272,12 +274,50 @@ function deleteContact($con) {
             $stmt->execute();
             $response = ['success' => true];
 
-        //Either the user entered a duplicate username, or there was an issue contacting the database
+        //Either the contact didnt exist, or there was an issue contacting the database
         } catch(mysqli_sql_exception) {$response = ['success' => false];}
 
         
         //Terminating query
         $stmt->close();
+
+        // Return JSON response
+        header("Content-Type: application/json");
+        echo json_encode($response);
+    }
+}
+
+//User would like to add a member to their contacts list
+function addContact($con) {
+    //Double checking request method
+    if ($_SERVER['REQUEST_METHOD'] === 'ADD') {
+        // Decode the incoming request (php://input is an input stream with raw JSON from the HTTP request body)
+        $requestData = json_decode(file_get_contents("php://input"), true);
+
+        //Pulling data from the json
+        $ownerID = $requestData['id'];
+        $firstname = $requestData['firstname'];
+        $lastname = $requestData['lastname'];
+        $email = $requestData['email'];
+        $phone = $requestData['phone'];
+
+        /*If the stmts aren't in the format below, we are prone to SQL injections! Please have values '?' in the con->prepare and only specify them in bind_params!*/
+
+        //Safely preform an INSERT query using a prepared statement
+        $stmt = $con->prepare("INSERT INTO usercontacts (ownerID, FirstName, LastName, Email, Phone) VALUES (?, ?, ?, ?, ?)");
+        //Bind the anonymous parameters
+        $stmt->bind_param("isssi", $ownerID, $firstname, $lastname, $email, $phone);
+
+        //Attempt to execute our query
+        try {
+            $stmt->execute();
+            $response = ['success' => true];
+            
+            //Terminating query
+            $stmt->close();
+
+        //There was an issue contacting the database
+        } catch(mysqli_sql_exception) {$response = ['success' => false];}
 
         // Return JSON response
         header("Content-Type: application/json");
